@@ -36,6 +36,7 @@ namespace BattagliaNavale
         {
             Console.SetCursorPosition(0, top);
             Console.Write(new string(' ', Console.WindowWidth));
+            Console.SetCursorPosition(0, top);
         }
         static void DrawBoard(char[,] board)
         {
