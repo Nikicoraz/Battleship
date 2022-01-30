@@ -279,8 +279,13 @@ namespace BattagliaNavale
                         coords = Console.ReadLine().ToUpper();
                         ClearLine(messageLine + 1);
                     } while (coords.Length < 2 || coords.Length > 3);
-
-                    x = coords.Length == 2 ? Convert.ToInt32(coords[1]) - 48 - 1 : Convert.ToInt32(coords.Substring(1, 2)) - 1;
+                    try
+                    {
+                        x = coords.Length == 2 ? Convert.ToInt32(coords[1]) - 48 - 1 : Convert.ToInt32(coords.Substring(1, 2)) - 1;
+                    }catch(FormatException e)
+                    {
+                        x = -1;
+                    }
                     y = 9 - (coords[0] - 65);
                     if (x < 0 || x > 9 || y < 0 || y > 9)
                     {
