@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Threading;
+using System.Collections.Generic;
+using MenuCreator;
 
 namespace BattagliaNavale
 {
     class Program
     {
-        // Griglia 10 per 10 che scala per essere 50 x 25
-        //
         //         1     2     3     4  
         // 4 da 2  **    **    **    **
         // 2 da 3  ***   ***
@@ -18,6 +17,13 @@ namespace BattagliaNavale
             miss,
             occupied
         }
+        enum Difficulty
+        {
+            Easy = 0,
+            Medium = 1,
+            Difficult = 2
+        }
+        // Metodi da usare in altri metodi
         static bool AreBoatsLeft(char[,] board)
         {
             for(int i = 0; i < 10; i++)
@@ -37,6 +43,14 @@ namespace BattagliaNavale
             Console.SetCursorPosition(0, top);
             Console.Write(new string(' ', Console.WindowWidth));
             Console.SetCursorPosition(0, top);
+        }
+        static void ClearPage()
+        {
+            for(int i = 0; i < Console.WindowHeight; i++)
+            {
+                ClearLine(i);
+            }
+            Console.SetCursorPosition(0, 0);
         }
         static void DrawBoard(char[,] board)
         {
@@ -90,7 +104,7 @@ namespace BattagliaNavale
                             return true;
                     }
                 }
-                catch(IndexOutOfRangeException e)
+                catch(IndexOutOfRangeException)
                 {
                     return true;
                 }
@@ -132,7 +146,28 @@ namespace BattagliaNavale
             return status;
         }
 
-
+        // Metodi con una funzione ampia
+        static int Menu()
+        {
+            Console.SetWindowPosition(0, 0);
+            int s = MenuUtils.CreateMenu(new string[] { "Start", "Options", "Exit" }, "\tBattleships\n");
+            return s + 1;
+        }
+        static void Options(ref Difficulty difficulty)
+        {
+            int s;
+            do
+            {
+                ClearPage(); // Rimanevano cose tipo easyicult
+                s = MenuUtils.CreateMenu(new string[] { $"Difficulty: {difficulty}", "Exit" }, "\t- OPTIONS -\n");
+                switch (s)
+                {
+                    case 0:
+                        difficulty = (Difficulty)(((int)(difficulty + 1)) % 3);
+                        break;
+                }
+            } while (s != 1);
+        }
         static void BoatPositioningKeys(char[,] playerBoard, int boatLength)
         {
             int headX = 5;
@@ -167,9 +202,9 @@ namespace BattagliaNavale
 
             bool vertical = false;
 
+            Random r = new Random();
             while(IsColliding(headX, headY, boatLength, vertical, playerBoard))
             {
-                Random r = new Random();
                 headX = r.Next(boatLength, 10);
                 headY = r.Next(boatLength, 10);
             }
@@ -255,7 +290,7 @@ namespace BattagliaNavale
             ClearLine(Console.CursorTop - 1);
             
         }
-        static void GamePhase(char[,] playerBoard, char[,] enemyBoard)
+        static void GamePhase(char[,] playerBoard, char[,] enemyBoard, Difficulty difficulty)
         {
             int messageLine = Console.CursorTop;
             char[,] hiddenEnemyBoard = new char[10, 10];
@@ -283,7 +318,7 @@ namespace BattagliaNavale
                     try
                     {
                         x = coords.Length == 2 ? Convert.ToInt32(coords[1]) - 48 - 1 : Convert.ToInt32(coords.Substring(1, 2)) - 1;
-                    }catch(FormatException e)
+                    }catch(FormatException)
                     {
                         x = -1;
                     }
@@ -328,8 +363,8 @@ namespace BattagliaNavale
             // Inzio ciclo di gioco
             int winner = 0;
             int turn = 0;
-            int[] previousEnemyShot = new int[2];
-            bool previousShotHitBoat = false;
+            List<int[]> enemyShots = new List<int[]>();
+            List<bool> shotsHit = new List<bool>();
 
             while(winner == 0)
             {
@@ -367,49 +402,121 @@ namespace BattagliaNavale
                     DrawBoard(playerBoard);
                     HitStatus hit;
                     int x, y;
+                    if (enemyShots.Count > 0)
+                    {
+                        x = enemyShots[^1][0];
+                        y = enemyShots[^1][1];
+                    }
+                    else
+                    {
+                        x = 0;
+                        y = 0;
+                    }
+
                     int retries = 0;
                     do
                     {
                         // Se l'ultimo colpo è andato a segno allora ci spara vicino
-                        if (previousShotHitBoat && retries < 4)
+                        if (shotsHit.Count > 0 && shotsHit[^1] && retries < 4)
                         {
                             do
                             {
-                                int direction = r.Next(0, 4);
-                                x = previousEnemyShot[0];
-                                y = previousEnemyShot[1];
-                                switch (direction)
+                                if(difficulty == Difficulty.Easy || (shotsHit[^1] && !shotsHit[^2]))
                                 {
-                                    // Down
-                                    case 0:
-                                        if (y < 9)
-                                        {
-                                            y++;
-                                        }
-                                        break;
-                                    // Up
-                                    case 1:
-                                        if(y > 0)
-                                        {
-                                            y--;
-                                        }
-                                        break;
-                                    // Left
-                                    case 2:
-                                        if(x > 0)
-                                        {
-                                            x--;
-                                        }
-                                        break;
-                                    // Right
-                                    case 3:
-                                        if(x < 9)
-                                        {
-                                            x++;
-                                        }
-                                        break;
+                                    int direction = r.Next(0, 4);
+                                    switch (direction)
+                                    {
+                                        // Down
+                                        case 0:
+                                            if (y < 9)
+                                            {
+                                                y++;
+                                            }
+                                            break;
+                                        // Up
+                                        case 1:
+                                            if(y > 0)
+                                            {
+                                                y--;
+                                            }
+                                            break;
+                                        // Left
+                                        case 2:
+                                            if(x > 0)
+                                            {
+                                                x--;
+                                            }
+                                            break;
+                                        // Right
+                                        case 3:
+                                            if(x < 9)
+                                            {
+                                                x++;
+                                            }
+                                            break;
+                                    }
+                                }else if(difficulty == Difficulty.Medium)
+                                {
+                                    int directionX = enemyShots[^1][0] - enemyShots[^2][0];
+                                    int directionY = enemyShots[^1][1] - enemyShots[^2][1];
+                                    int direction = (directionX != 0 ? directionX : directionY);
+                                    switch (direction)
+                                    {
+                                        case 1:
+                                            if(directionX != 0)
+                                            {
+                                                if(x < 9)
+                                                {
+                                                    x++;
+                                                }
+                                                else
+                                                {
+                                                    x = r.Next(0, 9);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (y < 9)
+                                                {
+                                                    y++;
+                                                }
+                                                else
+                                                {
+                                                    y = r.Next(0, 9);
+                                                }
+                                            }
+                                            break;
+                                        case -1:
+                                            if (directionX != 0)
+                                            {
+                                                if (x > 0)
+                                                {
+                                                    x--;
+                                                }
+                                                else
+                                                {
+                                                    x = r.Next(1, 10);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (y > 0)
+                                                {
+                                                    y--;
+                                                }
+                                                else
+                                                {
+                                                    y = r.Next(1, 10);
+                                                }
+                                            }
+                                            break;
+                                        default:
+                                            x = r.Next(0, 10);
+                                            y = r.Next(0, 10);
+                                            break;
+                                    }
                                 }
-                            } while (previousEnemyShot[0] != x && previousEnemyShot[1] != y);
+                            } while (enemyShots[^1][0] != x && enemyShots[^1][1] != y);
                         }
                         else
                         {
@@ -419,16 +526,16 @@ namespace BattagliaNavale
                         hit = Hit(playerBoard, playerBoard, x, y);
                         retries++;
                     } while (hit == HitStatus.occupied);
-                    previousEnemyShot = new int[] { x, y };
+                    enemyShots.Add(new int[] { x, y });
                     if(hit == HitStatus.hit)
                     {
                         PrintMessage($"The enemy hit one of your boats in {(char)((9 - y) + 65)}{x + 1}! (Press any key to continue)");
-                        previousShotHitBoat = true;
+                        shotsHit.Add(true);
                     }
                     else
                     {
                         PrintMessage($"The enemy's shot in {(char)((9 - y) + 65)}{x + 1} missed! (Press any key to continue)");
-                        previousShotHitBoat = false;
+                        shotsHit.Add(false);
                     }
                     DrawBoard(playerBoard);
                     Console.ReadKey();
@@ -452,15 +559,29 @@ namespace BattagliaNavale
 
         static void Main()
         {
-            // TODO
-            // Input coordinate su cui sparare
-            // Cambio board e quindi messaggio sotto che indica la board corrente
-            // - Funzione cambia board(boardCorrente)
+
             char[,] playerBoard = new char[10, 10];
             char[,] enemyBoard = new char[10, 10];
-            SetupFase(playerBoard);
-            GamePhase(playerBoard, enemyBoard);
-            Console.ReadKey();
+            
+            int s;
+            Difficulty difficulty = Difficulty.Easy;
+            do
+            {
+                s = Menu();
+                ClearPage();
+                switch (s)
+                {
+                    case 1:
+                        SetupFase(playerBoard);
+                        GamePhase(playerBoard, enemyBoard, difficulty);
+                        break;
+                    case 2:
+                        Options(ref difficulty);
+                        break;
+                }
+                ClearPage();
+            } while (s != 3);
+            ClearPage();
         }
     }
 }
