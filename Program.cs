@@ -649,6 +649,8 @@ namespace BattagliaNavale
                     case 1:
                         SetupFase(playerBoard);
                         GamePhase(playerBoard, enemyBoard, difficulty);
+                        playerBoard = new char[10, 10];
+                        enemyBoard = new char[10, 10];
                         break;
                     case 2:
                         Options(ref difficulty);
